@@ -1,0 +1,1128 @@
+/*=============================================
+DESCARGAR TABLA VENTAS CONTRIBUYENTE GLOBAL EN EXCEL 
+=============================================*/
+// Función modificada para exportar datos, con parámetro opcional para incluir encabezados
+function exportDataTableToWorksheet1(selector, worksheet, includeHeaders = true) {
+    // Si se solicita agregar encabezados, se extraen desde el thead de la tabla
+    if (includeHeaders) {
+        const headers = [];
+        $(`${selector} thead th`).each(function() {
+            headers.push($(this).text().trim());
+        });
+        console.log("Encabezados obtenidos de", selector, headers);
+        worksheet.addRow(headers);
+    }
+    
+    // Intentar obtener los datos usando la API de DataTable si está inicializada
+    let data = [];
+    if ($.fn.DataTable.isDataTable(selector)) {
+        const dataTable = $(selector).DataTable();
+        data = dataTable.rows({ search: 'applied' }).data().toArray();
+        console.log("Datos obtenidos de", selector, data);
+    } else {
+        // Si no está inicializada como DataTable, recorrer las filas manualmente
+        $(`${selector} tbody tr`).each(function() {
+            const row = [];
+            $(this).find('td').each(function() {
+                row.push($(this).text().trim());
+            });
+            data.push(row);
+        });
+    }
+    // Agregar las filas de datos al worksheet
+    worksheet.addRows(data);
+}
+
+function ventasConsumidorContribuyenteExcelGlobal() {
+    // Asegurarse de inicializar las 4 tablas
+    $('#anexoContribuyente1').DataTable();
+    $('#anexoContribuyente2').DataTable();
+    $('#anexoContribuyente3').DataTable();
+    $('#anexoContribuyente4').DataTable();
+    
+    // Mostrar mensaje de carga
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Crear un nuevo libro de trabajo con ExcelJS y un único worksheet
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Ventas Global");
+    
+    // Exportar la primera tabla con encabezados, luego las demás sin encabezados ni filas en blanco adicionales
+    exportDataTableToWorksheet1('#anexoContribuyente1', ws, true);
+    exportDataTableToWorksheet1('#anexoContribuyente2', ws, false);
+    exportDataTableToWorksheet1('#anexoContribuyente3', ws, false);
+    exportDataTableToWorksheet1('#anexoContribuyente4', ws, false);
+
+    // Exportar el archivo Excel
+    wb.xlsx.writeBuffer().then(function(buffer) {
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "anexo_de_ventas_contribuyentes_global.xlsx";
+        link.click();
+    })
+    .finally(() => {
+        // Cerrar el mensaje de carga
+        swal.close();
+    });
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONTRIBUYENTE GLOBAL EN EXCEL CSV
+=============================================*/
+// Función auxiliar para escapar el contenido de cada celda en CSV
+function csvEscape1(value) {
+    // Si el valor contiene comas, saltos de línea o comillas dobles, se encierra en comillas dobles.
+    // Además, se duplican las comillas dobles dentro del valor.
+    if (typeof value === "string") {
+      value = value.replace(/"/g, '""');
+      if (/[",\r\n]/.test(value)) {
+        value = `"${value}"`;
+      }
+    }
+    return value;
+}
+  
+// Función para extraer la data de una tabla en formato CSV sin encabezados
+function exportDataTableToCSV1(selector) {
+    let csvLines = [];
+    
+    let data = [];
+    // Si la tabla está inicializada con DataTable, usar la API
+    if ($.fn.DataTable.isDataTable(selector)) {
+        const dataTable = $(selector).DataTable();
+        // Obtenemos todos los registros (por ejemplo, con búsqueda aplicada)
+        data = dataTable.rows({ search: 'applied' }).data().toArray();
+        console.log("Datos obtenidos de", selector, data);
+    } else {
+        // Si no está inicializada, extraemos manualmente las filas del <tbody>
+        $(`${selector} tbody tr`).each(function() {
+            const row = [];
+            $(this).find('td').each(function() {
+                row.push($(this).text().trim());
+            });
+            data.push(row);
+        });
+    }
+    
+    // Convertir cada fila a una línea CSV
+    data.forEach(function(row) {
+        const line = row.map(cell => csvEscape1(cell)).join(";");
+        csvLines.push(line);
+    });
+    
+    // Si csvLines está vacío, retorna una cadena vacía
+    if (csvLines.length === 0) {
+        return "";
+    } else {
+        return csvLines.join("\r\n") + "\r\n";
+    }
+}
+
+  
+  
+function ventasConsumidorContribuyenteCsvGlobal() {
+    // Asegurarse de inicializar las 4 tablas si se está utilizando DataTable
+    $('#anexoContribuyente1').DataTable();
+    $('#anexoContribuyente2').DataTable();
+    $('#anexoContribuyente3').DataTable();
+    $('#anexoContribuyente4').DataTable();
+    
+    // Mostrar mensaje de carga
+    swal({
+        title: "Generando CSV",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+    
+    // Concatenar el contenido CSV de cada tabla (sin encabezados)
+    let csvContent = "";
+    csvContent += exportDataTableToCSV1('#anexoContribuyente1');
+    csvContent += exportDataTableToCSV1('#anexoContribuyente2');
+    csvContent += exportDataTableToCSV1('#anexoContribuyente3');
+    csvContent += exportDataTableToCSV1('#anexoContribuyente4');
+    
+    // Crear un Blob con el contenido CSV y forzar la descarga
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement('a');
+    if (link.download !== undefined) { // compatibilidad con navegadores
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "anexo_de_ventas_contribuyente_global.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONSUMIDOR FINAL GLOBAL EN EXCEL 
+=============================================*/
+// Función modificada para exportar datos, con parámetro opcional para incluir encabezados
+function exportDataTableToWorksheet(selector, worksheet, includeHeaders = true) {
+    // Si se solicita agregar encabezados, se extraen desde el thead de la tabla
+    if (includeHeaders) {
+        const headers = [];
+        $(`${selector} thead th`).each(function() {
+            headers.push($(this).text().trim());
+        });
+        console.log("Encabezados obtenidos de", selector, headers);
+        worksheet.addRow(headers);
+    }
+    
+    // Intentar obtener los datos usando la API de DataTable si está inicializada
+    let data = [];
+    if ($.fn.DataTable.isDataTable(selector)) {
+        const dataTable = $(selector).DataTable();
+        data = dataTable.rows({ search: 'applied' }).data().toArray();
+        console.log("Datos obtenidos de", selector, data);
+    } else {
+        // Si no está inicializada como DataTable, recorrer las filas manualmente
+        $(`${selector} tbody tr`).each(function() {
+            const row = [];
+            $(this).find('td').each(function() {
+                row.push($(this).text().trim());
+            });
+            data.push(row);
+        });
+    }
+    // Agregar las filas de datos al worksheet
+    worksheet.addRows(data);
+}
+
+function ventasConsumidorFinalExcelGlobal() {
+    // Asegurarse de inicializar las 4 tablas
+    $('#anexoFinal1').DataTable();
+    $('#anexoFinal2').DataTable();
+    $('#anexoFinal3').DataTable();
+    $('#anexoFinal4').DataTable();
+    
+    // Mostrar mensaje de carga
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Crear un nuevo libro de trabajo con ExcelJS y un único worksheet
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Ventas Global");
+    
+    // Exportar la primera tabla con encabezados, luego las demás sin encabezados ni filas en blanco adicionales
+    exportDataTableToWorksheet('#anexoFinal1', ws, true);
+    exportDataTableToWorksheet('#anexoFinal2', ws, false);
+    exportDataTableToWorksheet('#anexoFinal3', ws, false);
+    exportDataTableToWorksheet('#anexoFinal4', ws, false);
+
+    // Exportar el archivo Excel
+    wb.xlsx.writeBuffer().then(function(buffer) {
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "anexo_de_ventas_final_global.xlsx";
+        link.click();
+    })
+    .finally(() => {
+        // Cerrar el mensaje de carga
+        swal.close();
+    });
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONSUMIDOR FINAL GLOBAL EN EXCEL CSV
+=============================================*/
+// Función auxiliar para escapar el contenido de cada celda en CSV
+function csvEscape(value) {
+    // Si el valor contiene comas, saltos de línea o comillas dobles, se encierra en comillas dobles.
+    // Además, se duplican las comillas dobles dentro del valor.
+    if (typeof value === "string") {
+      value = value.replace(/"/g, '""');
+      if (/[",\r\n]/.test(value)) {
+        value = `"${value}"`;
+      }
+    }
+    return value;
+}
+
+// Función para extraer la data de una tabla en formato CSV sin encabezados
+function exportDataTableToCSV(selector) {
+    let csvLines = [];
+    let data = [];
+
+    // Si la tabla está inicializada con DataTable, usar la API
+    if ($.fn.DataTable.isDataTable(selector)) {
+        const dataTable = $(selector).DataTable();
+        // Obtenemos todos los registros (por ejemplo, con búsqueda aplicada)
+        data = dataTable.rows({ search: 'applied' }).data().toArray();
+        console.log("Datos obtenidos de", selector, data);
+    } else {
+        // Si no está inicializada, extraemos manualmente las filas del <tbody>
+        $(`${selector} tbody tr`).each(function() {
+            const row = [];
+            $(this).find('td').each(function() {
+                row.push($(this).text().trim());
+            });
+            data.push(row);
+        });
+    }
+
+    // Convertir cada fila a una línea CSV
+    data.forEach(function(row) {
+        const line = row.map(cell => csvEscape(cell)).join(";");
+        csvLines.push(line);
+    });
+
+    // Si no hay líneas, se retorna una cadena vacía
+    if (csvLines.length === 0) {
+        return "";
+    } else {
+        return csvLines.join("\r\n") + "\r\n";
+    }
+}
+
+function ventasConsumidorFinalCsvGlobal() {
+    // Asegurarse de inicializar las 4 tablas si se está utilizando DataTable
+    $('#anexoFinal1').DataTable();
+    $('#anexoFinal2').DataTable();
+    $('#anexoFinal3').DataTable();
+    $('#anexoFinal4').DataTable();
+
+    // Mostrar mensaje de carga
+    swal({
+        title: "Generando CSV",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Concatenar el contenido CSV de cada tabla (sin encabezados)
+    let csvContent = "";
+    csvContent += exportDataTableToCSV('#anexoFinal1');
+    csvContent += exportDataTableToCSV('#anexoFinal2');
+    csvContent += exportDataTableToCSV('#anexoFinal3');
+    csvContent += exportDataTableToCSV('#anexoFinal4');
+
+    // Crear un Blob con el contenido CSV y forzar la descarga
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement('a');
+    if (link.download !== undefined) { // compatibilidad con navegadores
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "anexo_de_ventas_final_global.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONSUMIDOR FINAL EN EXCEL CSV
+=============================================*/
+function ventasConsumidorFinalCsv() {
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    const dataTable = $('#anexoVentas').DataTable();
+    const allData = dataTable.rows().data();
+
+    let csv = '';
+    for (let i = 0; i < allData.length; i++) {
+        const row = allData[i];
+        const rowData = [];
+
+        for (let j = 0; j < row.length; j++) {
+            rowData.push(String(row[j]).replace(/;/g, ',')); // Cambia ; por , si está en el contenido
+        }
+
+        csv += rowData.join(';') + '\n';
+    }
+
+    const link = document.createElement('a');
+    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    link.download = 'anexo_de_ventas_final.csv';
+    link.click();
+
+    swal.close();
+}
+
+
+/*=============================================
+GUARDAR DECLARACIONES
+=============================================*/
+function generarDeclaracionFinal() {
+
+    var table = $('#anexoVentas').DataTable();
+
+    // Extraer datos y convertir a JSON
+    var dataArray = table.rows().data().toArray();
+    var jsonData = JSON.stringify(dataArray);
+    
+    // Asignar al campo oculto
+    console.log(jsonData);
+    $('#facturas').val(jsonData);
+    
+}
+
+function generarDeclaracionContribuyentes() {
+
+    var table = $('#anexoVentasContribuyentes').DataTable();
+
+    // Extraer datos y convertir a JSON
+    var dataArray = table.rows().data().toArray();
+    var jsonData = JSON.stringify(dataArray);
+    
+    // Asignar al campo oculto
+    console.log(jsonData);
+    $('#facturasC').val(jsonData);
+    
+}
+
+/*=============================================
+DESCARGAR TABLA GENERAL DE CXC EN PDF
+=============================================*/
+function descargarPDF() {
+	// Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando PDF",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+    // Obtener la instancia de DataTable
+    const dataTable = $('#facturasSinPagar').DataTable();
+
+    // Guardar la configuración original
+    const originalLength = dataTable.page.len();
+
+    // Mostrar todos los registros en una sola página
+    dataTable.page.len(-1).draw();
+
+    // Crear el PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+    });
+
+    // Obtener los encabezados de las columnas, excepto la última
+    const columns = [];
+    $('#facturasSinPagar thead th').each(function(index) {
+        if (index < 11) { // Excluye la última columna
+            columns.push($(this).text());
+        }
+    });
+
+    // Obtener los datos de la tabla, excluyendo la última columna
+    const rows = [];
+    dataTable.rows().every(function() {
+        const rowData = this.data();
+        rows.push(rowData.slice(0, 11)); // Excluye la última columna
+    });
+
+    // Generar la tabla en el PDF
+    doc.autoTable({
+        head: [columns],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        columnStyles: {
+            0: { cellWidth: 40 },  // Cliente
+            1: { cellWidth: 30 },  // Número de control
+            2: { cellWidth: 30 },  // Código de generación
+            3: { cellWidth: 20 },  // Tipo de factura
+            4: { cellWidth: 25 },  // Monto total
+            5: { cellWidth: 25 },  // Monto abonado
+            6: { cellWidth: 20 },  // Estado
+            7: { cellWidth: 25 },  // Fecha
+            8: { cellWidth: 20 },  // Días de atraso
+            9: { cellWidth: 30 }, // Vendedor
+            10: { cellWidth: 30 }, // Facturador
+        },
+        margin: { top: 10, left: 2, right: 10 },
+        pageBreak: 'auto',
+        tableWidth: 'auto',
+    });
+
+    // Restaurar la configuración original de paginación
+    dataTable.page.len(originalLength).draw();
+
+    // Guardar el PDF
+    doc.save('facturasSinPagar.pdf');
+	swal.close()
+}
+
+/*=============================================
+DESCARGAR TABLA GENERAL DE CXC EN EXCEL
+=============================================*/
+function exportarExcel() {
+	// Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+	// Obtener la tabla
+	const tabla = document.getElementById("facturasSinPagar");
+	// Convertir la tabla HTML en una hoja de trabajo
+	const ws = XLSX.utils.table_to_sheet(tabla);
+	// Crear un nuevo libro de trabajo
+	const wb = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(wb, ws, "Facturas sin pagar");
+	// Exportar el libro de trabajo a un archivo
+	XLSX.writeFile(wb, "facturas_sin_pagar.xlsx");
+	swal.close()
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONSUMIDOR FINAL EN PDF
+=============================================*/
+function ventasConsumidorFinalPdf() {
+	// Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando PDF",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoVentas').DataTable();
+
+    // Guardar la configuración original
+    const originalLength = dataTable.page.len();
+
+    // Mostrar todos los registros en una sola página
+    dataTable.page.len(-1).draw();
+
+    // Crear el PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+    });
+
+    // Obtener los encabezados de las columnas
+    // Obtener los encabezados de las columnas
+const columns = [];
+const totalColumns = $('#anexoVentas thead th').length;
+
+$('#anexoVentas thead th').each(function(index) {
+    let text = $(this).text();
+    if (index === totalColumns - 2) {
+        text = "Renta"; // Cambiar el penúltimo encabezado
+    } else if (index === totalColumns - 1) {
+        text = "Anexo"; // Cambiar el último encabezado
+    }
+    columns.push(text);
+});
+
+
+
+    // Obtener los datos de la tabla
+    const rows = [];
+    dataTable.rows().every(function() {
+        rows.push(this.data());
+    });
+
+    doc.autoTable({
+        head: [columns],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 6 },
+        columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 10 },
+            2: { cellWidth: 10 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 10 },
+            6: { cellWidth: 10 },
+            7: { cellWidth: 20 },
+            8: { cellWidth: 20 },
+            9: { cellWidth: 10 },
+            10: { cellWidth: 10 },
+            11: { cellWidth: 15 },
+            12: { cellWidth: 10 },
+            13: { cellWidth: 15 },
+            14: { cellWidth: 15 },
+            15: { cellWidth: 15 },
+            16: { cellWidth: 10 },
+            17: { cellWidth: 15 },
+            18: { cellWidth: 20 },
+            19: { cellWidth: 10 },
+            20: { cellWidth: 10 },
+        },
+        margin: { top: 10, left: 2, right: 10 },
+        pageBreak: 'auto',
+        tableWidth: 'auto',
+    });
+
+    // Restaurar la configuración original de paginación
+    dataTable.page.len(originalLength).draw();
+
+    // Guardar el PDF
+    doc.save('ANEXO-VENTAS-FINAL.pdf');
+	swal.close()
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONSUMIDOR FINAL EN EXCEL
+=============================================*/
+function ventasConsumidorFinalExcel() {
+    // Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoVentas').DataTable();
+
+    // Obtener todos los datos de la tabla, no solo los visibles
+    const data = dataTable.rows().data().toArray();
+
+    // Crear un nuevo libro de trabajo con ExcelJS
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Facturas");
+
+    // Obtener los encabezados de la tabla
+    const headers = [];
+    $('#anexoVentas thead th').each(function() {
+        headers.push($(this).text().trim());
+    });
+
+    // Agregar los encabezados como primera fila en el Excel
+    ws.addRow(headers);
+
+    // Agregar las filas de datos
+    ws.addRows(data);
+
+    // Exportar el archivo Excel
+    wb.xlsx.writeBuffer().then(function(buffer) {
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "anexo_de_ventas_final.xlsx";
+        link.click();
+    });
+
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONTRIBUYENTES EN PDF
+=============================================*/
+function ventasContribuyentePdf() {
+	// Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando PDF",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoVentasContribuyentes').DataTable();
+
+    // Guardar la configuración original
+    const originalLength = dataTable.page.len();
+
+    // Mostrar todos los registros en una sola página
+    dataTable.page.len(-1).draw();
+
+    // Crear el PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+    });
+
+    // Obtener los encabezados de las columnas
+    // Obtener los encabezados de las columnas
+const columns = [];
+const totalColumns = $('#anexoVentasContribuyentes thead th').length;
+
+$('#anexoVentasContribuyentes thead th').each(function(index) {
+    let text = $(this).text();
+    if (index === totalColumns - 2) {
+        text = "Renta"; // Cambiar el penúltimo encabezado
+    } else if (index === totalColumns - 1) {
+        text = "Anexo"; // Cambiar el último encabezado
+    }
+    columns.push(text);
+});
+
+
+
+    // Obtener los datos de la tabla
+    const rows = [];
+    dataTable.rows().every(function() {
+        rows.push(this.data());
+    });
+
+    doc.autoTable({
+        head: [columns],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 6 },
+        columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 10 },
+            2: { cellWidth: 10 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 10 },
+            6: { cellWidth: 10 },
+            7: { cellWidth: 20 },
+            8: { cellWidth: 20 },
+            9: { cellWidth: 10 },
+            10: { cellWidth: 10 },
+            11: { cellWidth: 15 },
+            12: { cellWidth: 10 },
+            13: { cellWidth: 15 },
+            14: { cellWidth: 15 },
+            15: { cellWidth: 15 },
+            16: { cellWidth: 10 },
+            17: { cellWidth: 15 },
+            18: { cellWidth: 20 },
+            19: { cellWidth: 10 },
+        },
+        margin: { top: 10, left: 2, right: 10 },
+        pageBreak: 'auto',
+        tableWidth: 'auto',
+    });
+
+    // Restaurar la configuración original de paginación
+    dataTable.page.len(originalLength).draw();
+
+    // Guardar el PDF
+    doc.save('ANEXO-VENTAS-CONTRIBUYENTES.pdf');
+	swal.close()
+}
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONTRIBUYENTES EN EXCEL
+=============================================*/
+function ventasContribuyenteExcel() {
+    // Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoVentasContribuyentes').DataTable();
+
+    // Obtener todos los datos de la tabla, no solo los visibles
+    const data = dataTable.rows().data().toArray();
+
+    // Crear un nuevo libro de trabajo con ExcelJS
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Facturas");
+
+    // Obtener los encabezados de la tabla
+    const headers = [];
+    $('#anexoVentasContribuyentes thead th').each(function() {
+        headers.push($(this).text().trim());
+    });
+
+    // Agregar los encabezados como primera fila en el Excel
+    ws.addRow(headers);
+
+    // Agregar las filas de datos
+    ws.addRows(data);
+
+    // Exportar el archivo Excel
+    wb.xlsx.writeBuffer().then(function(buffer) {
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "anexo_de_ventas_contribuyentes.xlsx";
+        link.click();
+    });
+
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONTRIBUYENTES EN EXCEL CSV
+=============================================*/
+function ventasContribuyenteCsv() {
+    // Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoVentasContribuyentes').DataTable();
+
+    // Obtener todos los datos cargados en DataTable
+    const data = dataTable.rows().data().toArray();
+
+    // Convertir los datos a formato CSV (delimitado por ";")
+    let csv = "";
+    data.forEach(row => {
+        csv += row.join(";") + "\n"; // Filas de datos sin encabezados
+    });
+
+    // Crear un enlace para descargar el archivo CSV
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "anexo_de_ventas_contribuyentes.csv";
+
+    // Descargar el archivo
+    link.click();
+
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+/*=============================================
+DESCARGAR TABLA COMPRAS EN EXCEL
+=============================================*/
+function comprasExcel() {
+    // Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoCompras').DataTable();
+
+    // Obtener todos los datos de la tabla, no solo los visibles
+    const data = dataTable.rows().data().toArray();
+
+    // Crear un nuevo libro de trabajo con ExcelJS
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Facturas");
+
+    // Obtener los encabezados de la tabla
+    const headers = [];
+    $('#anexoCompras thead th').each(function() {
+        headers.push($(this).text().trim());
+    });
+
+    // Agregar los encabezados como primera fila en el Excel
+    ws.addRow(headers);
+
+    // Agregar las filas de datos
+    ws.addRows(data);
+
+    // Exportar el archivo Excel
+    wb.xlsx.writeBuffer().then(function(buffer) {
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "anexo_de_compras.xlsx";
+        link.click();
+    });
+
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+
+/*=============================================
+DESCARGAR TABLA VENTAS CONTRIBUYENTES EN EXCEL CSV
+=============================================*/
+function comprasCsv() {
+    // Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Obtener la instancia de DataTable
+    const dataTable = $('#anexoCompras').DataTable();
+
+    // Obtener todos los datos cargados en DataTable
+    const data = dataTable.rows().data().toArray();
+
+    // Convertir los datos a formato CSV (delimitado por ";") excluyendo la última columna
+    let csv = "";
+    data.forEach(row => {
+        csv += row.slice(0, -1).join(";") + "\n"; // Eliminar la última columna antes de unir
+    });
+
+    // Crear un enlace para descargar el archivo CSV
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "anexo_de_compras.csv";
+
+    // Descargar el archivo
+    link.click();
+
+    // Cerrar el mensaje de carga
+    swal.close();
+}
+
+/*=============================================
+DESCARGAR TABLA INVENTARIO EN PDF
+=============================================*/
+
+function descargarPdf2() {
+    // Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando PDF",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        buttons: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+
+    // Obtener la instancia de DataTable
+    const dataTable = $('#inventario').DataTable();
+
+    // Guardar la configuración original
+    const originalLength = dataTable.page.len();
+
+    // Mostrar todos los registros en una sola página
+    dataTable.page.len(-1).draw();
+
+    // Crear el PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+    });
+
+    // Obtener los encabezados de las columnas excluyendo la última
+    const columns = [];
+    $('#inventario thead th').each(function(index) {
+        if (index < $('#inventario thead th').length - 1) { // Omitir la última columna
+            columns.push($(this).text());
+        }
+    });
+
+    // Obtener los datos de la tabla excluyendo la última columna y convertir imágenes a base64
+    const rows = [];
+    const imagePromises = [];
+    dataTable.rows().every(function() {
+        const row = this.data();
+        const imgElement = $(row.pop()); // Obtener la última columna (imagen)
+        
+        const rowData = row.slice(0, row.length);
+        const imageUrl = imgElement.attr('src');
+
+        imagePromises.push(
+            new Promise((resolve) => {
+                getBase64Image(imageUrl, (base64) => {
+                    rowData.push({ image: base64 });
+                    rows.push(rowData);
+                    resolve();
+                });
+            })
+        );
+    });
+
+    // Esperar a que todas las imágenes se conviertan a base64
+    Promise.all(imagePromises).then(() => {
+        doc.autoTable({
+            head: [columns],
+            body: rows,
+            theme: 'grid',
+            styles: { fontSize: 6 },
+            columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 'auto' },
+                3: { cellWidth: 'auto' },
+                4: { cellWidth: 'auto' },
+                5: { cellWidth: 'auto' },
+                6: { cellWidth: 'auto' },
+                7: { cellWidth: 'auto' },
+                8: { cellWidth: 'auto' },
+                9: { cellWidth: 35 } // Ajustar el ancho de la columna de la imagen
+            },
+            margin: { top: 10, left: 2, right: 10 },
+            pageBreak: 'auto',
+            tableWidth: 'wrap',
+            didParseCell: function (data) {
+                if (data.column.index === 9 && data.cell.raw.image) { // La última columna (ajusta el índice si es necesario)
+                    data.cell.text = ''; // Vaciar el texto de la celda
+                    data.cell.styles.cellPadding = 10; // Ajustar el padding de la celda
+                    data.cell.styles.minCellHeight = 28; // Ajustar la altura mínima de la celda
+                }
+            },
+            didDrawCell: function (data) {
+                if (data.column.index === 9 && data.cell.raw.image) { // La última columna (ajusta el índice si es necesario)
+                    doc.addImage(data.cell.raw.image, 'JPEG', data.cell.x + 1, data.cell.y + 1, 24, 24); // Ajustar el tamaño y posición de la imagen
+                }
+            }
+        });
+
+        // Restaurar la configuración original de paginación
+        dataTable.page.len(originalLength).draw();
+
+        // Guardar el PDF
+        doc.save('inventario.pdf');
+        swal.close();
+    });
+}
+
+
+
+// Función para convertir la imagen a base64
+function getBase64Image(url, callback) {
+	
+    var img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = function() {
+        var canvas = document.createElement('CANVAS');
+        var ctx = canvas.getContext('2d');
+        var dataURL;
+        canvas.height = this.naturalHeight;
+        canvas.width = this.naturalWidth;
+        ctx.drawImage(this, 0, 0);
+        dataURL = canvas.toDataURL('image/jpeg');
+        callback(dataURL);
+    };
+    img.src = url;
+}
+
+
+/*=============================================
+DESCARGAR TABLA INVENTARIO EN EXCEL
+=============================================*/
+		
+function exportarExcel2() {
+	// Mostrar el mensaje de carga con SweetAlert
+    swal({
+        title: "Generando archivo",
+        text: "Por favor espera mientras se genera el archivo.",
+        icon: "info",
+        showConfirmButton: false,
+        closeOnClickOutside: false,
+        closeOnEsc: false,
+    });
+	// Obtener la instancia de DataTable
+	const dataTable = $('#inventario').DataTable();
+
+	// Crear el libro de Excel
+	const wb = XLSX.utils.book_new();
+	const ws_data = [];
+
+	// Obtener los encabezados de las columnas excluyendo la última (para no incluir imágenes)
+	const headers = [];
+	$('#inventario thead th').each(function(index) {
+		if (index < $('#inventario thead th').length - 2) { // Omitir la última columna (imagen)
+			headers.push($(this).text());
+		}
+	});
+	ws_data.push(headers); // Agregar los encabezados a la tabla
+
+	// Obtener los datos de la tabla excluyendo la última columna (imagen)
+	dataTable.rows().every(function() {
+		const row = this.data();
+		const rowData = row.slice(0, row.length - 2); // Omitir la última columna (imagen)
+		ws_data.push(rowData); // Agregar fila sin la imagen
+	});
+
+	// Crear la hoja de Excel con los datos
+	const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+	// Crear el libro y agregar la hoja
+	XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+
+	// Descargar el archivo Excel
+	XLSX.writeFile(wb, 'inventario_sin_imagenes.xlsx');
+	swal.close()
+}
+
+/*=============================================
+ELIMINAR DECLARACION
+=============================================*/
+$(".tablas").on("click", ".btnEliminarDeclaracion", function(){
+console.log("asd");
+    var idDeclaracion = $(this).attr("idDeclaracion");
+  
+    swal({
+      title: '¿Está seguro de borrar la declaración?',
+      text: "¡Esto permitirá que desde la sucursal puedan subir nuevamente el periodo",
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'Si, borrar declaración!'
+    }).then(function(result){
+  
+      if(result.value){
+  
+        window.location = "index.php?ruta=ventas-globales&idDeclaracionEliminar="+idDeclaracion;
+  
+      }
+  
+    })
+  
+  })
+  
+
+  
+// Simular doble clic llamando a la función dos veces
+document.getElementById("imprimirInventario").addEventListener("click", function() {
+    descargarPdf2();
+    setTimeout(descargarPdf2, 100); // Llamar la función nuevamente después de un breve retraso
+	swal.close()
+});
