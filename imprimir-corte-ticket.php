@@ -67,12 +67,12 @@ $ventasPorCategoriaGlobal = array();
 
 // Definir la función auxiliar una sola vez (fuera del bucle)
 if (!function_exists('inicializaAgrupacion')) {
-    function inicializaAgrupacion(&$ventasDetalladas, $nombreVendedor, $categoria) {
+    function inicializaAgrupacion(&$ventasDetalladas, $nombreVendedor, $claveCategoria) {
         if (!isset($ventasDetalladas[$nombreVendedor])) {
             $ventasDetalladas[$nombreVendedor] = array();
         }
-        if (!isset($ventasDetalladas[$nombreVendedor][$categoria])) {
-            $ventasDetalladas[$nombreVendedor][$categoria] = array(
+        if (!isset($ventasDetalladas[$nombreVendedor][$claveCategoria])) {
+            $ventasDetalladas[$nombreVendedor][$claveCategoria] = array(
                 'exenta'    => 0.0,
                 'no_sujeta' => 0.0,
                 'gravada'   => 0.0
@@ -82,9 +82,9 @@ if (!function_exists('inicializaAgrupacion')) {
 }
 
 if (!function_exists('inicializaCategoriaGlobal')) {
-    function inicializaCategoriaGlobal(&$ventasPorCategoriaGlobal, $categoria) {
-        if (!isset($ventasPorCategoriaGlobal[$categoria])) {
-            $ventasPorCategoriaGlobal[$categoria] = array(
+    function inicializaCategoriaGlobal(&$ventasPorCategoriaGlobal, $claveCategoria) {
+        if (!isset($ventasPorCategoriaGlobal[$claveCategoria])) {
+            $ventasPorCategoriaGlobal[$claveCategoria] = array(
                 'exenta'    => 0.0,
                 'no_sujeta' => 0.0,
                 'gravada'   => 0.0
@@ -121,27 +121,30 @@ if (is_array($idsFacturas)) {
             foreach ($productos as $producto) {
                 $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
                 // Usamos el campo "categoria_id" (ajústalo si tu campo es diferente)
-                $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
+                $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
 
                 
                 // Inicializamos la estructura para este vendedor y categoría
-                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
         
                 if($productoLeido["exento_iva"] == "si"){
                     $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                     $ventaExenta   += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                     $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     $ventaExentaFinal += $monto;
                 } else {
                     $monto = (($producto["precioConIva"] - $producto["descuentoConIva"]) * $producto["cantidad"]);
                     $ventaGravada  += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['gravada'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['gravada'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['gravada'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['gravada'] += $monto;
                     $totalDescuentos += $producto["descuentoConIva"] * $producto["cantidad"];
                     $ventaGravadaFinal += $monto;
                 }
@@ -151,24 +154,27 @@ if (is_array($idsFacturas)) {
         elseif($cliente["tipo_cliente"] == "01" && $factura["tipoDte"] == "01"){
             foreach ($productos as $producto) {
                 $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                 
                 if($productoLeido["exento_iva"] == "si"){
                     $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                     $ventaExenta   += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                     $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     $ventaExentaFinal += $monto;
                 } else {
                     $monto = (($producto["precioConIva"] - $producto["descuentoConIva"]) * $producto["cantidad"]);
                     $ventaGravada  += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['gravada'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['gravada'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['gravada'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['gravada'] += $monto;
                     $totalDescuentos += $producto["descuentoConIva"] * $producto["cantidad"];
                     $ventaGravadaFinal += $monto;
                 }
@@ -178,24 +184,27 @@ if (is_array($idsFacturas)) {
         elseif($cliente["tipo_cliente"] == "02" && $factura["tipoDte"] == "01"){
             foreach ($productos as $producto) {
                 $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                 
                 if($productoLeido["exento_iva"] == "si"){
                     $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                     $ventaExenta   += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                     $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     $ventaExentaFinal += $monto;
                 } else {
                     $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                     $ventaNoSujeta += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['no_sujeta'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['no_sujeta'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['no_sujeta'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['no_sujeta'] += $monto;
                     $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                 }
             }
@@ -204,16 +213,19 @@ if (is_array($idsFacturas)) {
         elseif($cliente["tipo_cliente"] == "03" && $factura["tipoDte"] == "01"){
             foreach ($productos as $producto) {
                 $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                 
                 $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                 $ventaExenta   += $monto;
-                $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                 $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                 $ventaExentaFinal += $monto;
             }
@@ -223,26 +235,29 @@ if (is_array($idsFacturas)) {
             if($cliente["tipo_cliente"] == "01"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     if($productoLeido["exento_iva"] == "si"){
                         $monto = ((($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"])
                                     + $factura["seguro"] + $factura["flete"]);
                         $ventaExenta   += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaExentaFinal += $monto;
                     } else {
                         $monto = ((($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"])
                                     + $factura["seguro"] + $factura["flete"]);
                         $ventaGravada  += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['gravada'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['gravada'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['gravada'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['gravada'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaGravadaFinal += $monto;
                     }
@@ -251,26 +266,29 @@ if (is_array($idsFacturas)) {
             elseif($cliente["tipo_cliente"] == "02"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     if($productoLeido["exento_iva"] == "si"){
                         $monto = ((($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"])
                                     + $factura["seguro"] + $factura["flete"]);
                         $ventaExenta   += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaExentaFinal += $monto;
                     } else {
                         $monto = ((($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"])
                                     + $factura["seguro"] + $factura["flete"]);
                         $ventaNoSujeta += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['no_sujeta'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['no_sujeta'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['no_sujeta'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['no_sujeta'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     }
                 }
@@ -278,17 +296,20 @@ if (is_array($idsFacturas)) {
             elseif($cliente["tipo_cliente"] == "03"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     $monto = ((($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"])
                                 + $factura["seguro"] + $factura["flete"]);
                     $ventaExenta   += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                     $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     $ventaExentaFinal += $monto;
                 }
@@ -299,24 +320,27 @@ if (is_array($idsFacturas)) {
             if($cliente["tipo_cliente"] == "01"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     if($productoLeido["exento_iva"] == "si"){
                         $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                         $ventaExenta   += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaExentaCredito += $monto;
                     } else {
                         $monto = (($producto["precioConIva"] - $producto["descuentoConIva"]) * $producto["cantidad"]);
                         $ventaGravada  += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['gravada'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['gravada'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['gravada'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['gravada'] += $monto;
                         $totalDescuentos += $producto["descuentoConIva"] * $producto["cantidad"];
                         $ventaGravadaCredito += $monto;
                     }
@@ -325,24 +349,27 @@ if (is_array($idsFacturas)) {
             elseif($cliente["tipo_cliente"] == "02"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     if($productoLeido["exento_iva"] == "si"){
                         $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                         $ventaExenta   += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaExentaCredito += $monto;
                     } else {
                         $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                         $ventaNoSujeta += $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['no_sujeta'] += $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['no_sujeta'] += $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['no_sujeta'] += $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['no_sujeta'] += $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     }
                 }
@@ -350,16 +377,19 @@ if (is_array($idsFacturas)) {
             elseif($cliente["tipo_cliente"] == "03"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     $monto = (($producto["precioSinImpuestos"] - $producto["descuento"]) * $producto["cantidad"]);
                     $ventaExenta   += $monto;
-                    $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] += $monto;
-                    $ventasPorCategoriaGlobal[$categoria]['exenta'] += $monto;
+                    $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] += $monto;
+                    $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] += $monto;
                     $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                     $ventaExentaCredito += $monto;
                 }
@@ -370,24 +400,27 @@ if (is_array($idsFacturas)) {
             if($cliente["tipo_cliente"] == "00"){
                 foreach ($productos as $producto) {
                     $productoLeido = ControladorProductos::ctrMostrarProductos("id", $producto["idProducto"], "no");
-                    $categoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
-                $categoria = $categoriaInfo["nombre"]; // O el campo que corresponda
-                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $categoria);
-                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $categoria);
+                    $claveCategoriaInfo = ControladorCategorias::ctrMostrarCategorias("id", $productoLeido["categoria_id"]);
+                $claveCategoriaId = $claveCategoriaInfo["id"];
+                $claveCategoriaNombre = $claveCategoriaInfo["nombre"];
+                $claveCategoria = str_pad($claveCategoriaId, 5, "0", STR_PAD_LEFT) . "||" . $claveCategoriaNombre;
+
+                    inicializaAgrupacion($ventasDetalladas, $nombreVendedor, $claveCategoria);
+                    inicializaCategoriaGlobal($ventasPorCategoriaGlobal, $claveCategoria);
 
                     
                     if($productoLeido["exento_iva"] == "si"){
                         $monto = ($factura["totalSinIva"] - ($factura["totalSinIva"] * 0.1));
                         $ventaExenta   -= $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['exenta'] -= $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['exenta'] -= $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['exenta'] -= $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['exenta'] -= $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaExentaFinal -= $monto;
                     } else {
                         $monto = ($factura["totalSinIva"] - ($factura["totalSinIva"] * 0.1));
                         $ventaGravada  -= $monto;
-                        $ventasDetalladas[$nombreVendedor][$categoria]['gravada'] -= $monto;
-                        $ventasPorCategoriaGlobal[$categoria]['gravada'] -= $monto;
+                        $ventasDetalladas[$nombreVendedor][$claveCategoria]['gravada'] -= $monto;
+                        $ventasPorCategoriaGlobal[$claveCategoria]['gravada'] -= $monto;
                         $totalDescuentos += $producto["descuento"] * $producto["cantidad"];
                         $ventaGravadaFinal -= $monto;
                     }
@@ -419,13 +452,16 @@ $totalFGeneral = $ventaExentaTotal + $ventaNoSujetaTotal + $ventaGravadaTotal;
 
 // Generar las filas para la tabla con los totales agrupados
 $filasTabla = "";
-foreach ($ventasDetalladas as $vendedor => $categorias) {
+ksort($ventasDetalladas); // ordena vendedores
+foreach ($ventasDetalladas as $vendedor => $claveCategorias) {
+    ksort($claveCategorias); // ordena las categorías por ID (porque están al inicio de la clave)
     // Encabezado del vendedor
     $filasTabla .= "<tr style='background-color:#dcdcdc;'><td colspan='4'><strong>" . htmlspecialchars($vendedor) . "</strong></td></tr>";
     // Recorremos las categorías de ese vendedor
-    foreach ($categorias as $categoria => $tipos) {
+    foreach ($claveCategorias as $claveCategoria => $tipos) {
+        list(, $nombreCategoria) = explode("||", $claveCategoria);
         $filasTabla .= '<tr>
-            <td style="padding-left:20px"><em>' . htmlspecialchars($categoria) . '</em></td>
+            <td style="padding-left:20px"><em>' . htmlspecialchars($nombreCategoria) . '</em></td>
             <td style="text-align:right;">$' . number_format($tipos["exenta"], 2) . '</td>
             <td style="text-align:right;">$' . number_format($tipos["no_sujeta"], 2) . '</td>
             <td style="text-align:right;">$' . number_format($tipos["gravada"], 2) . '</td>
@@ -439,7 +475,7 @@ foreach ($ventasDetalladas as $vendedor => $categorias) {
         <td style="text-align:right;"><strong>$' . number_format($ventasPorVendedor[$vendedor]['ventaGravada'], 2) . '</strong></td>
     </tr>';
 }
-
+unset($claveCategorias);
 // -------------------------
 // Configuración de TCPDF para formato ticket
 // -------------------------
@@ -479,9 +515,12 @@ $html = '
     <br>';
     $html .= '<hr><strong>Totales por Categoría</strong><br>';
 
-foreach ($ventasPorCategoriaGlobal as $categoria => $valores) {
+foreach ($ventasPorCategoriaGlobal as $claveCategoria => $valores) {
     $html .= '<table cellpadding="5" cellspacing="0" style="font-size:6px; line-height:1.2em; width:100%">';
-    $html .= '<tr><td colspan="2"><strong>' . $categoria . '</strong></td></tr>';
+    list(, $nombreCategoria) = explode("||", $claveCategoria);
+    $html .= '<tr><td colspan="2"><strong>' . $nombreCategoria . '</strong></td></tr>';
+
+
     $total = 0.00;
     if ($valores['exenta'] > 0) {
         $html .= '<tr><td>Exenta</td><td align="right">$' . number_format($valores['exenta'], 2) . '</td></tr>';
@@ -495,7 +534,7 @@ foreach ($ventasPorCategoriaGlobal as $categoria => $valores) {
         $html .= '<tr><td>Gravada</td><td align="right">$' . number_format($valores['gravada'], 2) . '</td></tr>';
         $total += $valores['gravada'];
     }
-    $html .= '<tr><td><strong>Total '.$categoria.'</strong></td><td align="right"><strong>$'.number_format($total, 2). '</strong></td></tr>';
+    $html .= '<tr><td><strong>Total '.$claveCategoria.'</strong></td><td align="right"><strong>$'.number_format($total, 2). '</strong></td></tr>';
     $html .= '</table><br>';
 }
 
