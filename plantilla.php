@@ -5,20 +5,11 @@ session_start();
 date_default_timezone_set('America/El_Salvador');
 $horaActual = date("H"); // Obtiene solo la hora actual (sin minutos)
 $horaProgramada1 = "07"; // Cambia a la hora deseada
-$horaProgramada2 = "08"; // Cambia a la hora deseada
-$horaProgramada3 = "09"; // Cambia a la hora deseada
-$horaProgramada4 = "10"; // Cambia a la hora deseada
-$horaProgramada5 = "11"; // Cambia a la hora deseada
-$horaProgramada6 = "12"; // Cambia a la hora deseada
-$horaProgramada7 = "13"; // Cambia a la hora deseada
-$horaProgramada8 = "14"; // Cambia a la hora deseada
-$horaProgramada9 = "15"; // Cambia a la hora deseada
-$horaProgramada10 = "16"; // Cambia a la hora deseada
-$horaProgramada11 = "17"; // Cambia a la hora deseada
+$horaProgramada2 = "11"; // Cambia a la hora deseada
+$horaProgramada3 = "14"; // Cambia a la hora deseada
+$horaProgramada4 = "17"; // Cambia a la hora deseada
 
-if ($horaActual === $horaProgramada1 || $horaActual === $horaProgramada2 || $horaActual === $horaProgramada3 || $horaActual === $horaProgramada4
-    || $horaActual === $horaProgramada5 || $horaActual === $horaProgramada6 || $horaActual === $horaProgramada7 || $horaActual === $horaProgramada8 || $horaActual === $horaProgramada9 || $horaActual === $horaProgramada10
-    || $horaActual === $horaProgramada11) {
+if ($horaActual === $horaProgramada1 || $horaActual === $horaProgramada2 || $horaActual === $horaProgramada3 || $horaActual === $horaProgramada4) {
       // Configuración de la base de datos y directorio de respaldo
       $host = 'localhost';
       $usuario = 'root';
