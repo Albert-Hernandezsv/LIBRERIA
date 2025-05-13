@@ -1909,7 +1909,7 @@ class ControladorFacturas{
 			$valor = $_GET["idFacturaCancelarAnulacion"];
 			$orden = "fecEmi";
 
-			$facturas = ControladorFacturas::ctrMostrarAnulaciones($item, $valor, $orden);
+			$facturas = ControladorFacturas::ctrMostrarAnulaciones($item, $valor, $orden, "no");
 
 			$item = "id";
 			$valor = $facturas["facturaRelacionada"];

@@ -297,7 +297,7 @@ class AjaxFacturas {
         $valor = $this->idFacturaSA;
     
         // Obtiene los datos de la factura
-        $factura1 = ControladorFacturas::ctrMostrarAnulaciones($item, $valor, $orden);
+        $factura1 = ControladorFacturas::ctrMostrarAnulaciones($item, $valor, $orden, "no");
     
         // Asegúrate de que el token esté en la sesión
         if (!isset($_SESSION["tokenInicioSesionMh"])) {
@@ -385,7 +385,7 @@ class AjaxFacturas {
         $orden = "id";
 		$valor = $this->idFacturaA;
 
-		$factura = ControladorFacturas::ctrMostrarAnulaciones($item, $valor, $orden);
+		$factura = ControladorFacturas::ctrMostrarAnulaciones($item, $valor, $orden, "no");
 
         $item = "id";
         $orden = "id";
@@ -2919,7 +2919,7 @@ class AjaxFacturas {
                     "documentoRelacionado" => [
                         [
                         "tipoDocumento" => $facturaOriginal["tipoDte"],
-                        "tipoGeneracion" => 1,
+                        "tipoGeneracion" => 2,
                         "numeroDocumento" => $facturaOriginal["codigoGeneracion"],
                         "fechaEmision" => $facturaOriginal["fecEmi"]
                         ]
@@ -3138,7 +3138,7 @@ class AjaxFacturas {
                     "documentoRelacionado" => [
                         [
                         "tipoDocumento" => $facturaOriginal["tipoDte"],
-                        "tipoGeneracion" => 1,
+                        "tipoGeneracion" => 2,
                         "numeroDocumento" => $facturaOriginal["codigoGeneracion"],
                         "fechaEmision" => $facturaOriginal["fecEmi"]
                         ]
@@ -3351,7 +3351,7 @@ class AjaxFacturas {
                     "documentoRelacionado" => [
                         [
                         "tipoDocumento" => $facturaOriginal["tipoDte"],
-                        "tipoGeneracion" => 1,
+                        "tipoGeneracion" => 2,
                         "numeroDocumento" => $facturaOriginal["codigoGeneracion"],
                         "fechaEmision" => $facturaOriginal["fecEmi"]
                         ]
@@ -3577,7 +3577,7 @@ class AjaxFacturas {
                     "documentoRelacionado" => [
                         [
                         "tipoDocumento" => $facturaOriginal["tipoDte"],
-                        "tipoGeneracion" => 1,
+                        "tipoGeneracion" => 2,
                         "numeroDocumento" => $facturaOriginal["codigoGeneracion"],
                         "fechaEmision" => $facturaOriginal["fecEmi"]
                         ]
@@ -3797,7 +3797,7 @@ class AjaxFacturas {
                     "documentoRelacionado" => [
                         [
                         "tipoDocumento" => $facturaOriginal["tipoDte"],
-                        "tipoGeneracion" => 1,
+                        "tipoGeneracion" => 2,
                         "numeroDocumento" => $facturaOriginal["codigoGeneracion"],
                         "fechaEmision" => $facturaOriginal["fecEmi"]
                         ]
@@ -4011,7 +4011,7 @@ class AjaxFacturas {
                     "documentoRelacionado" => [
                         [
                         "tipoDocumento" => $facturaOriginal["tipoDte"],
-                        "tipoGeneracion" => 1,
+                        "tipoGeneracion" => 2,
                         "numeroDocumento" => $facturaOriginal["codigoGeneracion"],
                         "fechaEmision" => $facturaOriginal["fecEmi"]
                         ]
