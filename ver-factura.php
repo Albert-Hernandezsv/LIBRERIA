@@ -213,7 +213,6 @@
             $jwt = $factura["firmaDigital"];
             $codigoGeneracion = $factura["codigoGeneracion"];
         ?>
-        <button class="btn btn-secondary" data-toggle="modal" data-target="#modalVerClientes">Ver clientes registrados - crear factura</button>
         <button class="btn btn-success" onclick="descargarJSON()">Descargar JSON</button>
         <script>
             // Se pasa la variable PHP a JavaScript de forma segura
