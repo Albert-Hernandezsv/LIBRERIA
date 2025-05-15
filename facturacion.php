@@ -1137,7 +1137,7 @@ MODAL CREAR CLIENTE
                           <div class="input-group-prepend">
                                   <span class="input-group-text" id="basic-addon1"><i class="fa fa-user"></i></span>
                           </div>
-                          <input type="text" class="form-control" name="nuevoNITCliente" placeholder="Ingresar NIT" required>
+                          <input type="text" class="form-control" name="nuevoNITCliente" placeholder="Ingresar NIT">
                     </div>
 
                   </div>
@@ -1868,7 +1868,7 @@ MODAL EDITAR CLIENTE
                         <div class="input-group-prepend">
                           <span class="input-group-text" id="basic-addon1"><i class="fa fa-user"></i></span>
                         </div>
-                        <input type="text" class="form-control" id="editarNITCliente" name="editarNITCliente" value="" required>
+                        <input type="text" class="form-control" id="editarNITCliente" name="editarNITCliente" value="">
                       </div>
 
                     </div>

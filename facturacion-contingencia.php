@@ -1690,7 +1690,7 @@ MODAL EDITAR CLIENTE
                         <div class="input-group-prepend">
                           <span class="input-group-text" id="basic-addon1"><i class="fa fa-user"></i></span>
                         </div>
-                        <input type="text" class="form-control" id="editarNITCliente" name="editarNITCliente" value="" required>
+                        <input type="text" class="form-control" id="editarNITCliente" name="editarNITCliente" value="">
                       </div>
 
                     </div>
